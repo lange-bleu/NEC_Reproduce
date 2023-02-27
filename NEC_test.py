@@ -96,7 +96,22 @@ class NEC_Dataset(Dataset):
             ref_path = os.path.join(speaker_id_path, "ref");
             ref_dir = os.listdir(ref_path);
 
-            tmp_dvector = torch.randn(1,256);
+            wav2mel = torch.jit.load(WAV2MEL_PT_Path);
+            dvector = torch.jit.load(DVECTOR_PT_Path).eval();
+
+            wav_tensor, sample_rate = torchaudio.load(os.path.join(ref_path, ref_dir[0]));
+            mel_tensor = wav2mel(wav_tensor, sample_rate);
+            emb_tensor_0 = dvector.embed_utterance(mel_tensor);
+
+            wav_tensor, sample_rate = torchaudio.load(os.path.join(ref_path, ref_dir[1]));
+            mel_tensor = wav2mel(wav_tensor, sample_rate);
+            emb_tensor_1 = dvector.embed_utterance(mel_tensor);
+
+            wav_tensor, sample_rate = torchaudio.load(os.path.join(ref_path, ref_dir[2]));
+            mel_tensor = wav2mel(wav_tensor, sample_rate);
+            emb_tensor_2 = dvector.embed_utterance(mel_tensor);
+
+            tmp_dvector = (emb_tensor_0 + emb_tensor_1 + emb_tensor_2) / 3;
             tmp_dvector = tmp_dvector.repeat(301,1);
 
             data_dir_path = os.path.join(speaker_id_path, "data");
@@ -111,8 +126,6 @@ class NEC_Dataset(Dataset):
                 tmp_mixed = tmp_mixed.real;
                 tmp_bg = tmp_bg.real;
                 tmp_mixed = tmp_mixed.reshape(301,601);
-                
-
 
                 self.Smixed.append(tmp_mixed);
                 self.Sbg.append(tmp_bg);
